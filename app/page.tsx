@@ -5,6 +5,7 @@ import PhilosophyCell from "@/components/bento/PhilosophyCell";
 import BlockchainCell from "@/components/bento/BlockchainCell";
 import AIInsightsCell from "@/components/bento/AIInsightsCell";
 import InvestingCell from "@/components/bento/InvestingCell";
+import PortalCell from "@/components/bento/PortalCell";
 import { getPublishedPosts } from "@/lib/notion";
 
 export const revalidate = 60;
@@ -52,6 +53,11 @@ export default async function HomePage() {
           <div className="h-full flex flex-col justify-between">
             <InvestingCell />
           </div>
+        </div>
+
+        {/* Portal - External Armory Link */}
+        <div className="col-span-1 md:col-span-2">
+          <PortalCell />
         </div>
       </div>
     </div>

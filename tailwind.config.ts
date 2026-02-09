@@ -68,6 +68,10 @@ const config: Config = {
           "42%": { transform: "scale(1.018)", boxShadow: "0 0 32px -4px rgba(0,240,255,0.55), 0 0 55px -8px rgba(0,240,255,0.3)" },
           "56%": { transform: "scale(1)", boxShadow: "0 0 20px -4px rgba(0,240,255,0.3), 0 0 40px -8px rgba(0,240,255,0.15)" },
         },
+        portalBreath: {
+          "0%, 100%": { boxShadow: "0 0 20px rgba(0,240,255,0.35)" },
+          "50%": { boxShadow: "0 0 32px rgba(0,240,255,0.55)" },
+        },
       },
       animation: {
         glitch: "glitch 0.3s ease-in-out",
@@ -77,6 +81,7 @@ const config: Config = {
         "gradient-breath": "gradientBreath 3s ease-in-out infinite",
         "bento-frame-breath": "bentoFrameBreath 2.5s ease-in-out infinite",
         "hero-heartbeat": "heroHeartbeat 1.4s ease-in-out infinite",
+        "portal-breath": "portalBreath 2s ease-in-out infinite",
       },
       typography: () => ({
         DEFAULT: {
