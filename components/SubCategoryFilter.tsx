@@ -35,7 +35,7 @@ export default function SubCategoryFilter({
 
   return (
     <nav
-      className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin"
+      className="subcat-scroll flex gap-2 overflow-x-auto pb-3 scrollbar-thin"
       aria-label="Filter by sub-category"
     >
       {items.map((sub) => {

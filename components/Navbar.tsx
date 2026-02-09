@@ -41,7 +41,7 @@ export default function Navbar() {
             alt="PostSoma 2050"
             width={160}
             height={40}
-            className="h-8 w-auto sm:h-10"
+            className="h-10 w-auto sm:h-12"
             priority
           />
         </Link>
@@ -61,8 +61,8 @@ export default function Navbar() {
                 >
                   <motion.span
                     className={`relative block px-3 py-2 font-mono text-sm transition-colors ${isActive
-                        ? "text-accent-ai"
-                        : "text-text-secondary hover:text-text-primary"
+                      ? "text-accent-ai"
+                      : "text-text-secondary hover:text-text-primary"
                       }`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}

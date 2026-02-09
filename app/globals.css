@@ -168,3 +168,23 @@ body[data-reading="true"]::before {
   outline: 2px solid var(--accent-ai);
   outline-offset: 2px;
 }
+
+/* Subtle scrollbar for subcategory nav */
+.subcat-scroll::-webkit-scrollbar {
+  height: 3px;
+}
+.subcat-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.subcat-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 999px;
+}
+.subcat-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+/* Firefox */
+.subcat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}

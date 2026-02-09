@@ -15,6 +15,7 @@ export type Post = {
   tags: string[];
   cover: string | null;
   publishedDate: string | null;
+  featured: boolean;
 };
 
 export async function getPosts(): Promise<Post[]> {

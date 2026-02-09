@@ -28,12 +28,12 @@ const NOTION_TO_CATEGORY: Record<string, Category> = {
 
 function getCategoryFromNotion(notionCategory: string | null): Category {
   if (!notionCategory) return "AI Insights";
-  
+
   const category = NOTION_TO_CATEGORY[notionCategory];
   if (category && CATEGORIES.includes(category)) {
     return category;
   }
-  
+
   console.warn(`⚠️ Unknown Notion category: "${notionCategory}", defaulting to "AI Insights"`);
   return "AI Insights";
 }
@@ -119,7 +119,7 @@ export async function testNotionConnection(): Promise<void> {
     ) {
       console.error(
         "Notion connection failed: the database was not found or this integration doesn’t have access.\n" +
-          "In Notion, open the database → ... → Connections → Add connection → select your PostSoma-Bot integration."
+        "In Notion, open the database → ... → Connections → Add connection → select your PostSoma-Bot integration."
       );
     } else if (message.includes("Invalid API key") || message.includes("401")) {
       console.error(
@@ -182,6 +182,12 @@ function mapPageToPost(page: PageObjectResponse): Post | null {
       return arr.map((x) => (x && typeof x.name === "string" ? x.name : "")).filter(Boolean);
     };
 
+    const getCheckbox = (key: string): boolean => {
+      const prop = p[key];
+      if (!prop || typeof prop !== "object" || !("checkbox" in prop)) return false;
+      return (prop as { checkbox?: boolean }).checkbox === true;
+    };
+
     const name = getTitle("Name") || getPageTitle(page);
     const slugRaw = getRichText("Slug");
     const slug = typeof slugRaw === "string" && slugRaw
@@ -202,6 +208,7 @@ function mapPageToPost(page: PageObjectResponse): Post | null {
       tags: getMultiSelect("Tags") ?? [],
       cover: null,
       publishedDate: getDate("Published Date") ?? getDate("Date") ?? null,
+      featured: getCheckbox("Featured"),
     };
   } catch (err) {
     console.warn(`⚠️ Failed to parse post: ${page?.id ?? "unknown"}`, err);
@@ -275,8 +282,11 @@ export async function getPublishedPosts(categorySlug?: string): Promise<Post[]> 
       cursor = response.next_cursor ?? undefined;
     } while (cursor);
 
-    // Newest first when merging paginated results (descending by Published Date)
+    // Featured posts first, then newest first within each group
     all.sort((a, b) => {
+      // Featured posts pinned at top
+      if (a.featured !== b.featured) return a.featured ? -1 : 1;
+      // Within group: newest first (descending by Published Date)
       const da = a.publishedDate ?? "";
       const db = b.publishedDate ?? "";
       return db.localeCompare(da);
@@ -470,9 +480,9 @@ export function getHeadingsFromBlocks(
   for (const block of flat) {
     const level =
       block.type === "heading_1" ? 1
-      : block.type === "heading_2" ? 2
-      : block.type === "heading_3" ? 3
-      : 0;
+        : block.type === "heading_2" ? 2
+          : block.type === "heading_3" ? 3
+            : 0;
     if (level === 0) continue;
     const rich = getRichText(block);
     const text = rich.map((r) => r.text?.content ?? "").join("").trim();
