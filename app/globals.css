@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #121212;
+  --text-primary: #E0E0E0;
+  --text-secondary: #A0A0A0;
+  --accent-ai: #00F0FF;
+  --accent-blockchain: #F7931A;
+  --accent-philosophy: #00FF41;
+  --accent-investing-bull: #00FF41;
+  --accent-investing-bear: #FF3B30;
+  --accent-notes: #F5F5F5;
+  --border-subtle: rgba(224, 224, 224, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Diagonal grid background layer - animates toward center, separate from content */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* Diagonal grid lines - sparser for cleaner look */
+  background-image:
+    repeating-linear-gradient(45deg,
+      rgba(224, 224, 224, 0.08) 0px,
+      rgba(224, 224, 224, 0.08) 1px,
+      transparent 1px,
+      transparent 56px),
+    repeating-linear-gradient(-45deg,
+      rgba(224, 224, 224, 0.08) 0px,
+      rgba(224, 224, 224, 0.08) 1px,
+      transparent 1px,
+      transparent 56px);
+  background-size: 56px 56px;
+  animation: gridFlow 3s linear infinite;
+}
+
+@keyframes gridFlow {
+  0% {
+    background-position: 0 0, 0 0;
+  }
+
+  100% {
+    background-position: 56px 56px, -56px 56px;
+  }
+}
+
+/* Hide grid on reading/article pages */
+body[data-reading="true"]::before {
+  display: none;
+}
+
+/* Glitch text effect (for logo / headings) */
+.glitch-layers {
+  position: relative;
+  display: inline-block;
+}
+
+.glitch-layers::before,
+.glitch-layers::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.glitch-layers::before {
+  color: var(--accent-ai);
+  animation: glitch-before 0.4s ease-in-out infinite;
+  clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+  transform: translate(-2px, 0);
+}
+
+.glitch-layers::after {
+  color: var(--accent-philosophy);
+  animation: glitch-after 0.4s ease-in-out infinite;
+  clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+  transform: translate(2px, 0);
+}
+
+@keyframes glitch-before {
+  0% {
+    transform: translate(-2px, 0);
+  }
+
+  33% {
+    transform: translate(2px, -1px);
+  }
+
+  66% {
+    transform: translate(-1px, 1px);
+  }
+
+  100% {
+    transform: translate(-2px, 0);
+  }
+}
+
+@keyframes glitch-after {
+  0% {
+    transform: translate(2px, 0);
+  }
+
+  33% {
+    transform: translate(-2px, 1px);
+  }
+
+  66% {
+    transform: translate(1px, -1px);
+  }
+
+  100% {
+    transform: translate(2px, 0);
+  }
+}
+
+/* Hero: hollow / stroke title (ghost watermark) */
+.hero-title-stroke {
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(0, 240, 255, 0.5);
+  paint-order: stroke fill;
+}
+
+/* Bento: glitch hover on AI Insights cell */
+.bento-glitch:hover {
+  animation: glitch 0.4s ease-in-out;
+}
+
+.bento-glitch:hover * {
+  text-shadow: 1px 0 var(--accent-ai), -1px 0 var(--accent-philosophy);
+}
+
+/* Scanline texture for archive / memory bank cards */
+.sheshin-scanline {
+  background-image: repeating-linear-gradient(0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.06) 2px,
+      rgba(0, 0, 0, 0.06) 4px);
+}
+
+/* Focus ring for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--accent-ai);
+  outline-offset: 2px;
+}
