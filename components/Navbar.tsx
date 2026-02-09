@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { CATEGORY_SLUGS, type Category } from "@/lib/design-tokens";
-
-const LOGO_TEXT = "PostSoma";
 
 const navLinks: { label: string; href: string }[] = [
   { label: "Home", href: "/" },
@@ -31,15 +30,20 @@ export default function Navbar() {
         className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-4 py-3 sm:px-6"
         aria-label="Main navigation"
       >
-        {/* Logo with glitch effect */}
+        {/* Logo */}
         <Link
           href="/"
-          className="font-mono text-xl font-semibold tracking-tight text-text-primary transition-colors hover:text-accent-ai focus:outline-none focus:ring-2 focus:ring-accent-ai focus:ring-offset-2 focus:ring-offset-bg"
+          className="transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-accent-ai focus:ring-offset-2 focus:ring-offset-bg"
           aria-label="PostSoma home"
         >
-          <span className="glitch-layers relative inline-block" data-text={LOGO_TEXT}>
-            {LOGO_TEXT}
-          </span>
+          <Image
+            src="/logo.png"
+            alt="PostSoma 2050"
+            width={160}
+            height={40}
+            className="h-8 w-auto sm:h-10"
+            priority
+          />
         </Link>
 
         {/* Desktop nav */}
@@ -56,11 +60,10 @@ export default function Navbar() {
                   className="focus:outline-none focus-visible:ring-0"
                 >
                   <motion.span
-                    className={`relative block px-3 py-2 font-mono text-sm transition-colors ${
-                      isActive
+                    className={`relative block px-3 py-2 font-mono text-sm transition-colors ${isActive
                         ? "text-accent-ai"
                         : "text-text-secondary hover:text-text-primary"
-                    }`}
+                      }`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -113,9 +116,8 @@ export default function Navbar() {
                 <Link
                   href={href}
                   onClick={() => setMobileOpen(false)}
-                  className={`block py-2.5 font-mono text-sm ${
-                    isActive ? "text-accent-ai" : "text-text-secondary"
-                  } hover:text-text-primary`}
+                  className={`block py-2.5 font-mono text-sm ${isActive ? "text-accent-ai" : "text-text-secondary"
+                    } hover:text-text-primary`}
                 >
                   {label}
                 </Link>

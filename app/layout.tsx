@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   title: "PostSoma 2050 | Cyberpunk-Humanist Knowledge Garden",
   description:
     "High-Tech meets High-Touch. AI, Blockchain, Philosophy, Investing, Notes.",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
