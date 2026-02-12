@@ -132,6 +132,15 @@ export async function testNotionConnection(): Promise<void> {
   }
 }
 
+/** Infer media kind from a URL's file extension. */
+function inferMediaKind(url: string): "image" | "video" | "audio" | "other" {
+  const ext = url.split("?")[0].split(".").pop()?.toLowerCase() ?? "";
+  if (["jpg", "jpeg", "png", "gif", "webp", "svg", "avif", "bmp", "ico"].includes(ext)) return "image";
+  if (["mp4", "webm", "mov", "avi", "mkv", "ogv"].includes(ext)) return "video";
+  if (["mp3", "wav", "ogg", "aac", "flac", "m4a", "opus"].includes(ext)) return "audio";
+  return "other";
+}
+
 /** Safe read from Notion page properties. Never accesses [0] on empty arrays. */
 function mapPageToPost(page: PageObjectResponse): Post | null {
   try {
@@ -188,6 +197,36 @@ function mapPageToPost(page: PageObjectResponse): Post | null {
       return (prop as { checkbox?: boolean }).checkbox === true;
     };
 
+    const getFiles = (key: string): Post["media"] => {
+      const prop = p[key];
+      if (!prop || typeof prop !== "object" || !("files" in prop)) return [];
+      const files = (prop as { files?: unknown[] }).files;
+      if (!Array.isArray(files)) return [];
+      return files
+        .map((f) => {
+          if (!f || typeof f !== "object") return null;
+          const fileObj = f as {
+            type?: string;
+            name?: string;
+            file?: { url?: string };
+            external?: { url?: string };
+          };
+          const url =
+            fileObj.type === "file"
+              ? fileObj.file?.url
+              : fileObj.type === "external"
+                ? fileObj.external?.url
+                : undefined;
+          if (!url || typeof url !== "string") return null;
+          return {
+            url,
+            name: typeof fileObj.name === "string" ? fileObj.name : undefined,
+            kind: inferMediaKind(url),
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null);
+    };
+
     const name = getTitle("Name") || getPageTitle(page);
     const slugRaw = getRichText("Slug");
     const slug = typeof slugRaw === "string" && slugRaw
@@ -209,6 +248,7 @@ function mapPageToPost(page: PageObjectResponse): Post | null {
       cover: null,
       publishedDate: getDate("Published Date") ?? getDate("Date") ?? null,
       featured: getCheckbox("Featured"),
+      media: getFiles("Media"),
     };
   } catch (err) {
     console.warn(`⚠️ Failed to parse post: ${page?.id ?? "unknown"}`, err);

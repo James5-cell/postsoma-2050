@@ -5,6 +5,13 @@ import {
   type Category,
 } from "./design-tokens";
 
+export type MediaItem = {
+  url: string;
+  name?: string;
+  mime?: string;
+  kind: "image" | "video" | "audio" | "other";
+};
+
 export type Post = {
   id?: string;
   name: string;
@@ -16,6 +23,7 @@ export type Post = {
   cover: string | null;
   publishedDate: string | null;
   featured: boolean;
+  media: MediaItem[];
 };
 
 export async function getPosts(): Promise<Post[]> {
