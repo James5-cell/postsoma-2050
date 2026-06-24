@@ -2,6 +2,103 @@ import { Client } from "@notionhq/client";
 import type { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import type { Post } from "./posts";
 import { CATEGORIES, type Category } from "./design-tokens";
+import fs from "fs";
+import path from "path";
+
+// =========================================================================
+// Notion API Concurrency, Retry & File-Cache Helpers
+// =========================================================================
+
+class ConcurrencyQueue {
+  private activeCount = 0;
+  private queue: (() => void)[] = [];
+
+  constructor(private limit: number) {}
+
+  async run<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.activeCount >= this.limit) {
+      await new Promise<void>((resolve) => this.queue.push(resolve));
+    }
+    this.activeCount++;
+    try {
+      return await fn();
+    } finally {
+      this.activeCount--;
+      const next = this.queue.shift();
+      if (next) next();
+    }
+  }
+}
+
+const notionQueue = new ConcurrencyQueue(2);
+
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries = 5,
+  delay = 1000
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (err: any) {
+    const isRateLimit = err.status === 429 || err.code === "rate_limited";
+    if (isRateLimit && retries > 0) {
+      const retryAfterHeader = err.headers?.get?.("retry-after");
+      const retryAfter = retryAfterHeader ? parseInt(retryAfterHeader, 10) * 1000 : delay;
+      const sleepTime = retryAfter + Math.random() * 500;
+      
+      console.warn(
+        `⏳ [Notion API Rate Limited] 429 encountered. Waiting ${Math.round(sleepTime)}ms before retry... (Attempts left: ${retries})`
+      );
+      await new Promise((resolve) => setTimeout(resolve, sleepTime));
+      return withRetry(fn, retries - 1, delay * 2);
+    }
+    throw err;
+  }
+}
+
+export async function safeNotionCall<T>(fn: () => Promise<T>): Promise<T> {
+  return notionQueue.run(() => withRetry(fn));
+}
+
+const CACHE_DIR = path.join(process.cwd(), ".next/cache/notion");
+
+async function withFileCache<T>(
+  key: string,
+  ttlMs: number,
+  fetchFn: () => Promise<T>
+): Promise<T> {
+  if (typeof window !== "undefined") {
+    return fetchFn();
+  }
+
+  const safeKey = key.replace(/[^a-zA-Z0-9_\-]/g, "_");
+  const cacheFile = path.join(CACHE_DIR, `${safeKey}.json`);
+
+  try {
+    if (fs.existsSync(cacheFile)) {
+      const stats = fs.statSync(cacheFile);
+      const age = Date.now() - stats.mtimeMs;
+      if (age < ttlMs) {
+        const data = fs.readFileSync(cacheFile, "utf-8");
+        return JSON.parse(data) as T;
+      }
+    }
+  } catch (err) {
+    console.warn(`⚠️ [Notion Cache] Failed to read cache for key ${safeKey}:`, err);
+  }
+
+  const freshData = await fetchFn();
+
+  try {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+    fs.writeFileSync(cacheFile, JSON.stringify(freshData), "utf-8");
+  } catch (err) {
+    console.warn(`⚠️ [Notion Cache] Failed to write cache for key ${safeKey}:`, err);
+  }
+
+  return freshData;
+}
+
 
 /**
  * Maps our internal category slugs to exact Notion database category strings.
@@ -269,75 +366,82 @@ export async function getPublishedPosts(categorySlug?: string): Promise<Post[]> 
     return [];
   }
 
-  try {
-    const notion = getNotionClient();
-    const db = await notion.databases.retrieve({ database_id: databaseId });
-    const dataSourceId =
-      "data_sources" in db && Array.isArray(db.data_sources) && db.data_sources.length > 0
-        ? (db.data_sources[0] as { id?: string }).id
-        : databaseId;
-    if (!dataSourceId) {
-      console.error("❌ Could not resolve Notion data source id");
-      return [];
-    }
+  const cacheKey = `published_posts_${categorySlug || "all"}`;
+  const CACHE_TTL = 10 * 60 * 1000; // 10 minutes cache
 
-    // 1. Base filter: Status MUST be "Done"
-    const andFilters: Array<{ property: string; status: { equals: string } } | { property: string; select: { equals: string } }> = [
-      { property: "Status", status: { equals: "Done" } },
-    ];
-
-    // 2. Category filter: if requested, add exact Notion category value from CATEGORY_MAP
-    if (categorySlug && CATEGORY_MAP[categorySlug]) {
-      andFilters.push({
-        property: "Category",
-        select: { equals: CATEGORY_MAP[categorySlug] },
-      });
-    }
-
-    const all: Post[] = [];
-    let cursor: string | undefined;
-    const pageSize = 100;
-
-    do {
-      const response = await notion.dataSources.query({
-        data_source_id: dataSourceId,
-        result_type: "page",
-        page_size: pageSize,
-        start_cursor: cursor,
-        filter: { and: andFilters },
-        // Newest first (descending: 2025 → 2024 → 2023)
-        sorts: [{ property: "Published Date", direction: "descending" }],
-      });
-
-      const results = Array.isArray(response.results) ? response.results : [];
-      for (const item of results) {
-        if (!item || item.object !== "page" || !("properties" in item)) continue;
-        try {
-          const post = mapPageToPost(item as PageObjectResponse);
-          if (post) all.push(post);
-        } catch (err) {
-          console.warn(`⚠️ Failed to process page: ${(item as { id?: string })?.id ?? "unknown"}`, err);
-        }
+  return withFileCache(cacheKey, CACHE_TTL, async () => {
+    try {
+      const notion = getNotionClient();
+      const db = await safeNotionCall(() => notion.databases.retrieve({ database_id: databaseId }));
+      const dataSourceId =
+        "data_sources" in db && Array.isArray(db.data_sources) && db.data_sources.length > 0
+          ? (db.data_sources[0] as { id?: string }).id
+          : databaseId;
+      if (!dataSourceId) {
+        console.error("❌ Could not resolve Notion data source id");
+        return [];
       }
 
-      cursor = response.next_cursor ?? undefined;
-    } while (cursor);
+      // 1. Base filter: Status MUST be "Done"
+      const andFilters: Array<{ property: string; status: { equals: string } } | { property: string; select: { equals: string } }> = [
+        { property: "Status", status: { equals: "Done" } },
+      ];
 
-    // Featured posts first, then newest first within each group
-    all.sort((a, b) => {
-      // Featured posts pinned at top
-      if (a.featured !== b.featured) return a.featured ? -1 : 1;
-      // Within group: newest first (descending by Published Date)
-      const da = a.publishedDate ?? "";
-      const db = b.publishedDate ?? "";
-      return db.localeCompare(da);
-    });
+      // 2. Category filter: if requested, add exact Notion category value from CATEGORY_MAP
+      if (categorySlug && CATEGORY_MAP[categorySlug]) {
+        andFilters.push({
+          property: "Category",
+          select: { equals: CATEGORY_MAP[categorySlug] },
+        });
+      }
 
-    return all;
-  } catch (error) {
-    console.error("🔥 Notion API failed:", error);
-    return [];
-  }
+      const all: Post[] = [];
+      let cursor: string | undefined;
+      const pageSize = 100;
+
+      do {
+        const response = await safeNotionCall(() =>
+          notion.dataSources.query({
+            data_source_id: dataSourceId,
+            result_type: "page",
+            page_size: pageSize,
+            start_cursor: cursor,
+            filter: { and: andFilters },
+            // Newest first (descending: 2025 → 2024 → 2023)
+            sorts: [{ property: "Published Date", direction: "descending" }],
+          })
+        );
+
+        const results = Array.isArray(response.results) ? response.results : [];
+        for (const item of results) {
+          if (!item || item.object !== "page" || !("properties" in item)) continue;
+          try {
+            const post = mapPageToPost(item as PageObjectResponse);
+            if (post) all.push(post);
+          } catch (err) {
+            console.warn(`⚠️ Failed to process page: ${(item as { id?: string })?.id ?? "unknown"}`, err);
+          }
+        }
+
+        cursor = response.next_cursor ?? undefined;
+      } while (cursor);
+
+      // Featured posts first, then newest first within each group
+      all.sort((a, b) => {
+        // Featured posts pinned at top
+        if (a.featured !== b.featured) return a.featured ? -1 : 1;
+        // Within group: newest first (descending by Published Date)
+        const da = a.publishedDate ?? "";
+        const db = b.publishedDate ?? "";
+        return db.localeCompare(da);
+      });
+
+      return all;
+    } catch (error) {
+      console.error("🔥 Notion API failed:", error);
+      return [];
+    }
+  });
 }
 
 /**
@@ -346,26 +450,31 @@ export async function getPublishedPosts(categorySlug?: string): Promise<Post[]> 
  */
 export async function getPostMarkdown(pageId: string): Promise<string> {
   if (!pageId || !process.env.NOTION_API_KEY) return "";
-  try {
-    console.log("✅ Found Page ID:", pageId);
+  const cacheKey = `post_markdown_${pageId}`;
+  const CACHE_TTL = 20 * 60 * 1000; // 20 minutes cache
 
-    const { NotionToMarkdown } = await import("notion-to-md");
-    const notion = getNotionClient();
-    const n2m = new NotionToMarkdown({ notionClient: notion });
-    const mdBlocks = await n2m.pageToMarkdown(pageId);
-    console.log("📦 Blocks Fetched Count:", mdBlocks?.length ?? 0);
+  return withFileCache(cacheKey, CACHE_TTL, async () => {
+    try {
+      console.log("✅ Found Page ID:", pageId);
 
-    const mdString = n2m.toMarkdownString(mdBlocks);
-    const rawContent =
-      typeof mdString === "string" ? mdString : (mdString as { parent?: string } | null)?.parent ?? "";
-    const preview = typeof rawContent === "string" ? rawContent.substring(0, 50) : "(no preview)";
-    console.log("📝 Markdown Content Preview:", preview);
+      const { NotionToMarkdown } = await import("notion-to-md");
+      const notion = getNotionClient();
+      const n2m = new NotionToMarkdown({ notionClient: notion });
+      const mdBlocks = await safeNotionCall(() => n2m.pageToMarkdown(pageId));
+      console.log("📦 Blocks Fetched Count:", mdBlocks?.length ?? 0);
 
-    return typeof rawContent === "string" ? rawContent : "";
-  } catch (err) {
-    console.warn("⚠️ Failed to fetch post markdown for page:", pageId, err);
-    return "";
-  }
+      const mdString = n2m.toMarkdownString(mdBlocks);
+      const rawContent =
+        typeof mdString === "string" ? mdString : (mdString as { parent?: string } | null)?.parent ?? "";
+      const preview = typeof rawContent === "string" ? rawContent.substring(0, 50) : "(no preview)";
+      console.log("📝 Markdown Content Preview:", preview);
+
+      return typeof rawContent === "string" ? rawContent : "";
+    } catch (err) {
+      console.warn("⚠️ Failed to fetch post markdown for page:", pageId, err);
+      return "";
+    }
+  });
 }
 
 // --- Notion Blocks API (for NotionRenderer) ---
@@ -445,11 +554,13 @@ async function fetchBlockChildren(
   const blocks: NotionBlock[] = [];
   let cursor: string | undefined;
   do {
-    const response = await notion.blocks.children.list({
-      block_id: blockId,
-      page_size: PAGE_SIZE,
-      start_cursor: cursor,
-    });
+    const response = await safeNotionCall(() =>
+      notion.blocks.children.list({
+        block_id: blockId,
+        page_size: PAGE_SIZE,
+        start_cursor: cursor,
+      })
+    );
     const results = Array.isArray(response.results) ? response.results : [];
     for (const b of results) {
       if (b && typeof b === "object" && "id" in b && "type" in b) {
@@ -488,17 +599,22 @@ async function enrichBlockWithChildren(
  */
 export async function getPostBlocks(pageId: string): Promise<NotionBlock[]> {
   if (!pageId || !process.env.NOTION_API_KEY) return [];
-  try {
-    const notion = getNotionClient();
-    const topBlocks = await fetchBlockChildren(notion, pageId);
-    const enriched = await Promise.all(
-      topBlocks.map((b) => enrichBlockWithChildren(notion, b))
-    );
-    return enriched;
-  } catch (err) {
-    console.warn("⚠️ Failed to fetch blocks for page:", pageId, err);
-    return [];
-  }
+  const cacheKey = `post_blocks_${pageId}`;
+  const CACHE_TTL = 20 * 60 * 1000; // 20 minutes cache
+
+  return withFileCache(cacheKey, CACHE_TTL, async () => {
+    try {
+      const notion = getNotionClient();
+      const topBlocks = await fetchBlockChildren(notion, pageId);
+      const enriched = await Promise.all(
+        topBlocks.map((b) => enrichBlockWithChildren(notion, b))
+      );
+      return enriched;
+    } catch (err) {
+      console.warn("⚠️ Failed to fetch blocks for page:", pageId, err);
+      return [];
+    }
+  });
 }
 
 function flattenBlocks(blocks: NotionBlock[]): NotionBlock[] {
