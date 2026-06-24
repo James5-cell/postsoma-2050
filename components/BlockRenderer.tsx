@@ -32,8 +32,6 @@ export default function BlockRenderer({
   blocks,
   accent = "#00F0FF",
 }: BlockRendererProps) {
-  if (!blocks?.length) return null;
-
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const copyCode = useCallback(async (id: string, text: string) => {
     try {
@@ -44,6 +42,9 @@ export default function BlockRenderer({
       setCopiedId(null);
     }
   }, []);
+
+  if (!blocks?.length) return null;
+
 
   const nodes: React.ReactNode[] = [];
   let i = 0;

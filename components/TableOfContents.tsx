@@ -148,7 +148,7 @@ export default function TableOfContents({
           "
         >
           <h4 className="mb-6 border-b border-gray-800 pb-2 font-mono text-xs uppercase tracking-widest text-cyan-400">
-            // Neural Index
+            {"// Neural Index"}
           </h4>
 
           <div className="flex flex-col space-y-3">

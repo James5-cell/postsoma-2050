@@ -60,7 +60,7 @@ export default function PortalCell() {
                         &gt;_ [SYS_PORTAL]
                     </span>
                     <span className="font-mono text-[9px] font-bold tracking-wider text-cyan-400/90 bg-cyan-950/45 px-1.5 py-0.5 rounded border border-cyan-500/25">
-                        // SYS.REDIRECT
+                        {"// SYS.REDIRECT"}
                     </span>
                 </div>
                 <span className="font-mono text-[10px] uppercase tracking-wide text-slate-500">

@@ -110,7 +110,7 @@ export default function PortalLibraryCell() {
                         [ + ] LIBRARY
                     </span>
                     <span className="font-mono text-[9px] font-bold tracking-wider text-stone-300 bg-stone-900/50 px-1.5 py-0.5 rounded border border-stone-850">
-                        // SYS.REDIRECT
+                        {"// SYS.REDIRECT"}
                     </span>
                 </div>
                 <span className="font-mono text-[10px] uppercase tracking-wide text-stone-500">

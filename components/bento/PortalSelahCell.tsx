@@ -32,7 +32,7 @@ export default function PortalSelahCell() {
                         [ † ] SELAH
                     </span>
                     <span className="font-mono text-[9px] font-bold tracking-wider text-amber-200/90 bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-500/20">
-                        // SYS.REDIRECT
+                        {"// SYS.REDIRECT"}
                     </span>
                 </div>
                 <span className="font-mono text-[10px] uppercase tracking-wide text-stone-500">
