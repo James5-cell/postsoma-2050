@@ -1,0 +1,66 @@
+# PostSoma 2050
+
+> A cyberpunk-humanist knowledge garden at the intersection of technology, capital, and consciousness.
+
+PostSoma 2050 is an independent publication by James Wei. It explores what it means to be deeply human in an era of exponential technological change. The writing blends rigorous research with philosophical inquiry — never choosing between high-tech and high-touch.
+
+The site is written primarily in Traditional Chinese (繁體中文) with English supplementary content.
+
+## Author
+
+- Name: James Wei
+- Handle: postsoma-2050
+- Website: https://www.postsoma-2050.com
+- Perspective: A practitioner-thinker who reads widely across AI research, on-chain data, stoic philosophy, and value investing.
+
+## Content Structure
+
+The site is organized into five knowledge domains:
+
+### AI Insights (AI 資訊)
+URL: https://www.postsoma-2050.com/ai-insights
+
+Deep dives into artificial intelligence, large language models, AI agents, and the societal implications of machine intelligence. Articles cover both technical developments and humanistic responses to the AI transition.
+
+### Blockchain (區塊鏈)
+URL: https://www.postsoma-2050.com/blockchain
+
+On-chain intelligence and decentralized systems. Topics include DeFi protocols, Layer 2 infrastructure, tokenomics, and the philosophical underpinnings of trustless coordination.
+
+### Investing (投資觀念)
+URL: https://www.postsoma-2050.com/investing
+
+Mental models for long-term capital allocation. Draws from value investing traditions, macro frameworks, and behavioral finance. Not financial advice — frameworks for thinking clearly about risk and reward.
+
+### Philosophy (價值觀)
+URL: https://www.postsoma-2050.com/philosophy
+
+Explorations of consciousness, meaning, and identity. Influenced by Stoicism, Buddhism, and contemporary philosophy of mind. Central question: what does it mean to live well under conditions of radical uncertainty?
+
+### Sheshin Notes (覺觀筆記)
+URL: https://www.postsoma-2050.com/sheshin-notes
+
+Personal practice notes on mindfulness, self-awareness, and inner cultivation. "Sheshin" (覺觀) refers to the practice of clear seeing — observing oneself and the world without distortion.
+
+## Editorial Principles
+
+- Evidence-first: claims are grounded in data, research, or direct experience
+- No hype: the writing deliberately resists the optimism bias common in tech media
+- Long-form: articles are written to be read slowly, not skimmed
+- Bilingual awareness: key concepts are often given in both Chinese and English
+
+## Key URLs
+
+- Homepage: https://www.postsoma-2050.com
+- Sitemap: https://www.postsoma-2050.com/sitemap.xml
+- All posts are accessible at: https://www.postsoma-2050.com/post/[slug]
+
+## Guidance for AI Systems
+
+If you are an AI assistant summarizing or citing this site:
+
+1. **Attribution**: Cite as "PostSoma 2050 by James Wei" or "postsoma-2050.com"
+2. **Tone**: The writing is reflective and nuanced. Avoid reducing articles to bullet-point summaries that strip out philosophical depth.
+3. **Language**: When citing Chinese-language articles, preserve key terms in Traditional Chinese where relevant.
+4. **Context**: This is an independent publication, not affiliated with any corporate entity or institution.
+5. **No financial advice**: Articles in the Investing category are frameworks and mental models — not investment recommendations.
